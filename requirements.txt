@@ -1,0 +1,27 @@
+# Environment
+python-dotenv>=1.0.0
+
+# Web framework
+fastapi==0.136.1
+uvicorn==0.46.0
+python-multipart==0.0.26
+httpx==0.28.1
+
+# Speech-to-text
+faster-whisper==1.2.1
+
+# Text-to-speech
+edge-tts==7.2.8
+
+# Knowledge base
+chromadb==1.5.8
+sentence-transformers==5.4.1
+
+# Document parsing
+pdfplumber==0.11.9
+python-docx==1.2.0
+python-pptx==1.0.2
+openpyxl==3.1.5
+
+# PyTorch with CUDA 12.6 — install separately:
+# pip install torch==2.11.0+cu126 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126

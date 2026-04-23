@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Bilik Bazası</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 16px 24px;
+      background: #1a1a2e;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 600; color: #7c83fd; }
+    header a {
+      margin-left: auto;
+      color: #666;
+      text-decoration: none;
+      font-size: 0.85rem;
+      border: 1px solid #333;
+      padding: 5px 14px;
+      border-radius: 20px;
+      transition: all 0.2s;
+    }
+    header a:hover { color: #7c83fd; border-color: #7c83fd; }
+
+    main { max-width: 760px; margin: 32px auto; padding: 0 20px 60px; }
+
+    /* ── Upload zone ── */
+    #drop-zone {
+      border: 2px dashed #2a2a5a;
+      border-radius: 14px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #13132a;
+    }
+    #drop-zone.drag-over {
+      border-color: #7c83fd;
+      background: #16163a;
+    }
+    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    #drop-zone p { color: #888; font-size: 0.9rem; margin-top: 6px; }
+    #drop-zone strong { color: #ccc; font-size: 1rem; }
+    #file-input { display: none; }
+
+    /* ── Progress ── */
+    #progress-wrap {
+      display: none;
+      margin-top: 16px;
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+    #progress-wrap .label {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #progress-bar-bg {
+      height: 6px;
+      background: #2a2a4a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #7c83fd;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    /* ── Notification ── */
+    #notif {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+    }
+    #notif.ok  { background: #1a2e1a; color: #a0e0a0; }
+    #notif.err { background: #2e1a1a; color: #e0a0a0; }
+
+    /* ── Document list ── */
+    .section-title {
+      margin: 36px 0 14px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #555;
+    }
+
+    #doc-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .doc-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: pop 0.2s ease;
+    }
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .doc-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name {
+      font-size: 0.93rem;
+      color: #ccc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .doc-meta { font-size: 0.75rem; color: #555; margin-top: 3px; }
+
+    .del-btn {
+      background: none;
+      border: 1px solid #3a2a2a;
+      color: #885555;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .del-btn:hover { border-color: #e53935; color: #e53935; }
+
+    .empty {
+      text-align: center;
+      color: #444;
+      font-size: 0.9rem;
+      padding: 40px 0;
+    }
+
+    .formats {
+      font-size: 0.75rem;
+      color: #444;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span>⚙️</span>
+  <h1>Bilik Bazası — Admin</h1>
+  <a href="/">← Çata qayıt</a>
+</header>
+
+<main>
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">📂</div>
+    <strong>Faylı buraya sürükləyin</strong>
+    <p>və ya seçmək üçün klikləyin</p>
+  </div>
+  <p class="formats">PDF · DOCX · XLSX · XLS · PPTX · TXT</p>
+  <input type="file" id="file-input" accept=".pdf,.docx,.xlsx,.xls,.pptx,.ppt,.txt" multiple />
+
+  <div id="progress-wrap">
+    <div class="label"><span id="progress-label">Yüklənir...</span></div>
+    <div id="progress-bar-bg"><div id="progress-bar"></div></div>
+  </div>
+
+  <div id="notif"></div>
+
+  <div class="section-title">Yüklənmiş sənədlər</div>
+  <div id="doc-list"><div class="empty">Hələ heç bir sənəd yoxdur</div></div>
+</main>
+
+<script>
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const progWrap   = document.getElementById('progress-wrap');
+  const progBar    = document.getElementById('progress-bar');
+  const progLabel  = document.getElementById('progress-label');
+  const notif      = document.getElementById('notif');
+  const docList    = document.getElementById('doc-list');
+
+  const ICONS = { pdf:'📄', docx:'📝', xlsx:'📊', xls:'📊', pptx:'📑', ppt:'📑', txt:'📃' };
+
+  // ── Drag & drop ────────────────────────────────────────────────────────────
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    uploadFiles([...e.dataTransfer.files]);
+  });
+  fileInput.addEventListener('change', () => uploadFiles([...fileInput.files]));
+
+  // ── Upload ─────────────────────────────────────────────────────────────────
+  async function uploadFiles(files) {
+    for (const file of files) {
+      await uploadOne(file);
+    }
+    loadDocs();
+  }
+
+  async function uploadOne(file) {
+    progWrap.style.display = 'block';
+    progBar.style.width    = '20%';
+    progLabel.textContent  = `Yüklənir: ${file.name}`;
+    hideNotif();
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      progBar.style.width = '60%';
+      const res  = await fetch('/api/admin/upload', { method: 'POST', body: form });
+      progBar.style.width = '100%';
+      const data = await res.json();
+
+      if (data.error) {
+        showNotif('err', '⚠️ ' + data.error);
+      } else {
+        showNotif('ok', `✓ "${file.name}" uğurla əlavə edildi`);
+      }
+    } catch (e) {
+      showNotif('err', '⚠️ Yükləmə xətası: ' + e.message);
+    } finally {
+      setTimeout(() => { progWrap.style.display = 'none'; progBar.style.width = '0%'; }, 600);
+    }
+  }
+
+  // ── Document list ──────────────────────────────────────────────────────────
+  async function loadDocs() {
+    const res  = await fetch('/api/admin/documents');
+    const data = await res.json();
+    const ids  = Object.keys(data);
+
+    if (ids.length === 0) {
+      docList.innerHTML = '<div class="empty">Hələ heç bir sənəd yoxdur</div>';
+      return;
+    }
+
+    docList.innerHTML = ids.map(id => {
+      const d   = data[id];
+      const ext = d.filename.split('.').pop().toLowerCase();
+      const ico = ICONS[ext] || '📄';
+      return `
+        <div class="doc-card" id="doc-${id}">
+          <div class="doc-icon">${ico}</div>
+          <div class="doc-info">
+            <div class="doc-name" title="${d.filename}">${d.filename}</div>
+            <div class="doc-meta">${d.chunks} parça · ${d.uploaded_at}</div>
+          </div>
+          <button class="del-btn" onclick="deleteDoc('${id}', '${d.filename}')">Sil</button>
+        </div>`;
+    }).join('');
+  }
+
+  async function deleteDoc(id, name) {
+    if (!confirm(`"${name}" silinsin?`)) return;
+    const res = await fetch(`/api/admin/documents/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`doc-${id}`)?.remove();
+      if (!document.querySelector('.doc-card')) {
+        docList.innerHTML = '<div class="empty">Hələ heç bir sənəd yoxdur</div>';
+      }
+      showNotif('ok', `✓ "${name}" silindi`);
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function showNotif(type, msg) {
+    notif.className = type;
+    notif.textContent = msg;
+    notif.style.display = 'block';
+    setTimeout(hideNotif, 4000);
+  }
+  function hideNotif() { notif.style.display = 'none'; }
+
+  loadDocs();
+</script>
+</body>
+</html>
