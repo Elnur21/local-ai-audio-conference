@@ -115,6 +115,10 @@ async def delete_doc(doc_id: str):
 async def root():
     return FileResponse("static/index.html")
 
+@app.get("/chat")
+async def chat_page():
+    return FileResponse("static/chat.html")
+
 
 @app.post("/api/process")
 async def process(

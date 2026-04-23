@@ -3,254 +3,519 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Səs Konfransı</title>
+  <title>SəsAI — Azərbaycan dilində AI Asistan</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:      #08081a;
+      --surface: #11112a;
+      --border:  #1e1e42;
+      --accent:  #7c83fd;
+      --accent2: #a78bfa;
+      --text:    #e2e2f0;
+      --muted:   #5a5a80;
+    }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f1a;
-      color: #e0e0e0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
     }
 
-    header {
-      padding: 16px 24px;
-      background: #1a1a2e;
-      border-bottom: 1px solid #2a2a4a;
+    /* ── Navbar ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 18px 60px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      background: rgba(8,8,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
     }
-    header h1 { font-size: 1.1rem; font-weight: 600; color: #7c83fd; }
-    header a {
-      margin-left: auto;
-      color: #555;
+    nav.scrolled { border-color: var(--border); }
+    .nav-logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    .nav-logo span { color: var(--accent2); }
+    .nav-links { margin-left: auto; display: flex; gap: 8px; }
+    .nav-links a {
+      color: var(--muted);
       text-decoration: none;
-      font-size: 0.78rem;
-      border: 1px solid #2a2a4a;
-      padding: 4px 12px;
+      font-size: 0.88rem;
+      padding: 7px 16px;
       border-radius: 20px;
       transition: all 0.2s;
     }
-    header a:hover { color: #7c83fd; border-color: #7c83fd; }
-    header .dot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: #4caf50;
-      transition: background 0.3s;
+    .nav-links a:hover { color: var(--text); }
+    .nav-links .cta {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
     }
-    header .dot.recording { background: #f44336; animation: blink 0.6s infinite; }
-    header .dot.processing { background: #ff9800; animation: blink 1s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .nav-links .cta:hover { background: var(--accent2); color: #fff; transform: scale(1.03); }
 
-    #conversation {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .msg {
-      max-width: 72%;
-      padding: 11px 15px;
-      border-radius: 18px;
-      font-size: 0.93rem;
-      line-height: 1.55;
-      animation: pop 0.25s ease;
-    }
-    @keyframes pop {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .msg .who {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      opacity: 0.55;
-      margin-bottom: 4px;
-    }
-    .msg.user {
-      background: #252560;
-      border-bottom-right-radius: 4px;
-      align-self: flex-end;
-      color: #cdd3ff;
-    }
-    .msg.ai {
-      background: #1a2e1a;
-      border-bottom-left-radius: 4px;
-      align-self: flex-start;
-      color: #c5ffc5;
-    }
-    .msg.err {
-      background: #2e1a1a;
-      color: #ffaaaa;
-      align-self: center;
-      max-width: 88%;
-      text-align: center;
-      border-radius: 12px;
-    }
-
-    footer {
-      padding: 18px 16px 24px;
-      background: #1a1a2e;
-      border-top: 1px solid #2a2a4a;
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
     }
 
-    #status { font-size: 0.82rem; color: #777; min-height: 18px; }
-
-    #mic {
-      width: 70px; height: 70px;
-      border-radius: 50%;
-      border: none;
-      background: #7c83fd;
-      color: #fff;
-      font-size: 26px;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(124,131,253,0.45);
-      transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+    .hero-glow {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(124,131,253,0.18) 0%, transparent 70%);
+      pointer-events: none;
     }
-    #mic:hover:not(:disabled) { transform: scale(1.06); }
-    #mic.recording {
-      background: #e53935;
-      box-shadow: 0 4px 28px rgba(229,57,53,0.6);
-      animation: pulse 0.9s infinite;
-    }
-    #mic:disabled { background: #333; cursor: not-allowed; box-shadow: none; }
-    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
 
-    #clear {
-      background: none;
-      border: 1px solid #333;
-      color: #666;
-      padding: 5px 18px;
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(124,131,253,0.12);
+      border: 1px solid rgba(124,131,253,0.3);
       border-radius: 20px;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      color: var(--accent2);
+      margin-bottom: 28px;
+      letter-spacing: 0.3px;
     }
-    #clear:hover { border-color: #7c83fd; color: #7c83fd; }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      max-width: 800px;
+      margin-bottom: 22px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 42px;
+    }
+
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 30px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(124,131,253,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,131,253,0.5); }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+    /* ── Preview card ── */
+    .preview-wrap {
+      margin-top: 72px;
+      width: 100%;
+      max-width: 780px;
+      position: relative;
+    }
+    .preview-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    }
+    .preview-bar {
+      background: #0d0d22;
+      padding: 12px 18px;
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot-r { width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; }
+    .dot-y { width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; }
+    .dot-g { width: 12px; height: 12px; border-radius: 50%; background: #27c93f; }
+    .preview-url { margin-left: 12px; font-size: 0.75rem; color: var(--muted); }
+    .preview-body { padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+    .bubble {
+      max-width: 72%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .bubble.user {
+      background: #1e1e50;
+      color: #bcc5ff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.ai {
+      background: #142214;
+      color: #a8eea8;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .bubble .lbl { font-size: 0.68rem; opacity: 0.5; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+    .preview-footer {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mic-demo {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 20px rgba(124,131,253,0.4);
+      flex-shrink: 0;
+    }
+    .preview-hint { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Section commons ── */
+    section { padding: 100px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      max-width: 580px;
+      margin-bottom: 56px;
+    }
+
+    /* ── Features ── */
+    #features { background: linear-gradient(180deg, var(--bg) 0%, #0b0b20 100%); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 30px;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .feat-card:hover { transform: translateY(-4px); border-color: rgba(124,131,253,0.3); }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 52px; height: 52px;
+      background: rgba(124,131,253,0.12);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+    }
+    .feat-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .feat-card p { color: var(--muted); font-size: 0.88rem; line-height: 1.65; }
+
+    /* ── How it works ── */
+    #how { background: #0b0b20; }
+    .steps { display: flex; flex-direction: column; gap: 0; max-width: 680px; }
+    .step {
+      display: flex;
+      gap: 24px;
+      padding: 32px 0;
+      border-left: 2px solid var(--border);
+      padding-left: 32px;
+      position: relative;
+    }
+    .step:last-child { border-color: transparent; }
+    .step-num {
+      position: absolute;
+      left: -18px;
+      top: 32px;
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .step-content h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .step-content p { color: var(--muted); font-size: 0.88rem; line-height: 1.65; }
+    .step-icon { font-size: 1.6rem; flex-shrink: 0; margin-top: 2px; }
+
+    /* ── CTA ── */
+    #cta {
+      background: radial-gradient(ellipse at center, rgba(124,131,253,0.12) 0%, transparent 70%), var(--bg);
+      text-align: center;
+    }
+    #cta .section-title { max-width: 600px; margin: 0 auto 16px; }
+    #cta .section-sub   { margin: 0 auto 40px; }
+
+    /* ── Footer ── */
+    footer {
+      padding: 28px 60px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* ── Scroll animation ── */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .hero h1 { letter-spacing: -0.5px; }
+      footer { justify-content: center; text-align: center; }
+    }
   </style>
 </head>
 <body>
 
-<header>
-  <span>🎙️</span>
-  <h1>AI Səs Konfransı</h1>
-  <a href="/admin">⚙️ Admin</a>
-  <div class="dot" id="dot"></div>
-</header>
-
-<div id="conversation">
-  <div class="msg ai">
-    <div class="who">AI</div>
-    Salam! Mikrofon düyməsini basıb danışın. Sizə Azərbaycan dilində cavab verəcəyəm.
+<!-- Navbar -->
+<nav id="nav">
+  <div class="nav-logo">Səs<span>AI</span></div>
+  <div class="nav-links">
+    <a href="#features">Xüsusiyyətlər</a>
+    <a href="#how">Necə işləyir</a>
+    <a href="/admin">Admin</a>
+    <a href="/chat" class="cta">Başla →</a>
   </div>
-</div>
+</nav>
 
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-badge">🇦🇿 Azərbaycan dilində AI</div>
+
+  <h1>Danış. <span class="grad">AI eşitsin.</span><br>Cavab alsın.</h1>
+
+  <p>
+    Mikrofona danışın, süni intellekt sizi Azərbaycan dilində anlayır,
+    bilik bazasından cavab tapır və sizə danışır.
+  </p>
+
+  <div class="hero-actions">
+    <a href="/chat" class="btn btn-primary">🎙️ İndi başla</a>
+    <a href="#how" class="btn btn-secondary">Necə işləyir?</a>
+  </div>
+
+  <div class="preview-wrap reveal">
+    <div class="preview-card">
+      <div class="preview-bar">
+        <div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div>
+        <span class="preview-url">localhost:8000/chat</span>
+      </div>
+      <div class="preview-body">
+        <div class="bubble user">
+          <div class="lbl">Siz</div>
+          Müqavilənin ödəniş şərtləri nədir?
+        </div>
+        <div class="bubble ai">
+          <div class="lbl">AI</div>
+          Müqaviləyə görə ödəniş hər ayın 5-inə qədər həyata keçirilməlidir. Gecikmə halında 0.1% faiz hesablanır.
+        </div>
+        <div class="bubble user">
+          <div class="lbl">Siz</div>
+          Vaxtından əvvəl ödəsəm, endirim varmı?
+        </div>
+        <div class="bubble ai">
+          <div class="lbl">AI</div>
+          Bəli, 3 ay əvvəl ödəsəniz 5% endirim tətbiq olunur.
+        </div>
+      </div>
+      <div class="preview-footer">
+        <div class="mic-demo">🎙️</div>
+        <span class="preview-hint">Mikrofon düyməsini basıb danışın…</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-inner">
+    <p class="section-label reveal">Xüsusiyyətlər</p>
+    <h2 class="section-title reveal">Hər şey bir yerdə</h2>
+    <p class="section-sub reveal">
+      Sənədlərinizi yükləyin, danışın — AI lazım olan məlumatı tapıb sizə çatdırır.
+    </p>
+
+    <div class="features-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon">🎙️</div>
+        <h3>Azərbaycan dilini anlayır</h3>
+        <p>OpenAI Whisper large-v3 modeli ilə dəqiq nitq tanıma. GPU ilə sürətli, CPU ilə də işlək.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🧠</div>
+        <h3>Lokal AI model</h3>
+        <p>Ollama ilə məlumatlarınız heç vaxt serverə getmir. Tam məxfilik, internet olmadan da işləyir.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">📚</div>
+        <h3>Bilik bazası</h3>
+        <p>PDF, Word, Excel, PowerPoint fayllarınızı yükləyin. AI onlardan cavab tapır, mənbəyə istinad etmədən natural danışır.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔊</div>
+        <h3>Səsli cavab</h3>
+        <p>Microsoft Edge TTS ilə az-AZ-BabekNeural/BanuNeural səsləri — cavabları eşidirsiniz, oxumursunuz.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">⚙️</div>
+        <h3>Admin panel</h3>
+        <p>Sənədləri sürükle-burax ilə yükləyin, idarə edin. Texniki bilik tələb olunmur.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔒</div>
+        <h3>Tam yerli quraşdırma</h3>
+        <p>Bütün komponentlər öz serverinizdə işləyir. Heç bir xarici API asılılığı yoxdur.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how">
+  <div class="section-inner">
+    <p class="section-label reveal">Necə işləyir</p>
+    <h2 class="section-title reveal">3 addımda cavab</h2>
+    <p class="section-sub reveal">
+      Arxada mürəkkəb texnologiya işləyir, amma istifadəçi üçün sadəcə danışmaq kifayətdir.
+    </p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <div class="step-icon">🎤</div>
+        <div class="step-content">
+          <h3>Danışın</h3>
+          <p>Mikrofon düyməsini basıb Azərbaycan dilində istədiyinizi soruşun. Whisper modeliniz sizi real vaxtda mətinə çevirir.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <div class="step-icon">🔍</div>
+        <div class="step-content">
+          <h3>Bilik bazasında axtarış</h3>
+          <p>ChromaDB sualınıza uyğun ən məsafəli sənəd parçalarını tapır. Ollama modeli bu kontekstlə cavab hazırlayır.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <div class="step-icon">🔊</div>
+        <div class="step-content">
+          <h3>Cavabı eşidin</h3>
+          <p>Edge TTS cavabı Azərbaycan dilində səsləndiriri, eyni zamanda ekranda da görünür. Söhbət tarixi qorunur.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="section-inner">
+    <p class="section-label reveal">Hazırsınız?</p>
+    <h2 class="section-title reveal">İndi sınayın</h2>
+    <p class="section-sub reveal">
+      Sənədlərinizi admin paneldən yükləyin, sonra danışmağa başlayın.
+    </p>
+    <div class="hero-actions reveal">
+      <a href="/chat"  class="btn btn-primary">🎙️ Çata keç</a>
+      <a href="/admin" class="btn btn-secondary">📂 Admin panel</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
 <footer>
-  <div id="status">Danışmağa hazır</div>
-  <button id="mic" onclick="toggle()">🎙️</button>
-  <button id="clear" onclick="clearChat()">Söhbəti sil</button>
+  <div class="nav-logo">Səs<span>AI</span></div>
+  <span>Whisper · Ollama · Edge TTS · ChromaDB</span>
 </footer>
 
 <script>
-  let recorder = null, chunks = [], recording = false, history = [];
+  // Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+  });
 
-  const micBtn   = document.getElementById('mic');
-  const statusEl = document.getElementById('status');
-  const dotEl    = document.getElementById('dot');
-  const conv     = document.getElementById('conversation');
+  // Reveal on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
 
-  function setState(s, text) {
-    statusEl.textContent = text;
-    dotEl.className = 'dot ' + s;
-  }
-
-  function addMsg(role, text) {
-    const d = document.createElement('div');
-    d.className = 'msg ' + role;
-    const label = role === 'user' ? 'Siz' : role === 'ai' ? 'AI' : '';
-    d.innerHTML = label ? `<div class="who">${label}</div>${text}` : text;
-    conv.appendChild(d);
-    conv.scrollTop = conv.scrollHeight;
-  }
-
-  async function toggle() {
-    if (recording) { recorder.stop(); return; }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      chunks = [];
-      recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = e => e.data.size && chunks.push(e.data);
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        recording = false;
-        micBtn.classList.remove('recording');
-        micBtn.textContent = '🎙️';
-        await send(new Blob(chunks, { type: 'audio/webm' }));
-      };
-      recorder.start();
-      recording = true;
-      micBtn.classList.add('recording');
-      micBtn.textContent = '⏹️';
-      setState('recording', 'Dinlənir...');
-    } catch (e) {
-      addMsg('err', '⚠️ Mikrofon əlçatan deyil: ' + e.message);
-    }
-  }
-
-  async function send(blob) {
-    micBtn.disabled = true;
-    setState('processing', 'Emal edilir...');
-
-    const form = new FormData();
-    form.append('audio', blob, 'rec.webm');
-    form.append('history', JSON.stringify(history));
-
-    try {
-      const res  = await fetch('/api/process', { method: 'POST', body: form });
-      const data = await res.json();
-
-      if (data.error) {
-        addMsg('err', '⚠️ ' + data.error);
-        setState('', 'Danışmağa hazır');
-        return;
-      }
-
-      addMsg('user', data.user_text);
-      addMsg('ai',   data.ai_text);
-      history.push({ role: 'user',      content: data.user_text });
-      history.push({ role: 'assistant', content: data.ai_text  });
-
-      setState('', 'Cavab oxunur...');
-      const bytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
-      const audio = new Audio(URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' })));
-      audio.onended = () => setState('', 'Danışmağa hazır');
-      audio.play();
-
-    } catch (e) {
-      addMsg('err', '⚠️ Xəta: ' + e.message);
-      setState('', 'Danışmağa hazır');
-    } finally {
-      micBtn.disabled = false;
-      micBtn.textContent = '🎙️';
-    }
-  }
-
-  function clearChat() {
-    history = [];
-    conv.innerHTML = `<div class="msg ai"><div class="who">AI</div>Söhbət təmizləndi. Yenidən başlaya bilərsiniz.</div>`;
-  }
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 </script>
 </body>
 </html>
