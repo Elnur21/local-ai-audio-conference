@@ -2,7 +2,7 @@ import asyncio
 import edge_tts
 
 # just example text
-TEXT = """Sizin borcunuz 10 manat 20 qəpikdir, tez bir zamanda ödəməlisiniz."""  # text to be converted to speech
+TEXT = """Example text."""  # text to be converted to speech
 VOICE = "az-AZ-BabekNeural"   # male — use "az-AZ-BanuNeural" for female
 OUTPUT = "output.mp3"
 
