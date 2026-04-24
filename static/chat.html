@@ -96,7 +96,7 @@
     }
 
     footer {
-      padding: 18px 16px 24px;
+      padding: 12px 16px 20px;
       background: #1a1a2e;
       border-top: 1px solid #2a2a4a;
       display: flex;
@@ -107,13 +107,61 @@
 
     #status { font-size: 0.82rem; color: #777; min-height: 18px; }
 
-    #mic {
-      width: 70px; height: 70px;
+    #text-row {
+      display: flex;
+      width: 100%;
+      max-width: 640px;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    #textInput {
+      flex: 1;
+      background: #12122a;
+      border: 1px solid #2a2a4a;
+      border-radius: 22px;
+      color: #e0e0e0;
+      font-size: 0.92rem;
+      padding: 10px 16px;
+      resize: none;
+      outline: none;
+      min-height: 42px;
+      max-height: 120px;
+      line-height: 1.45;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      overflow-y: auto;
+    }
+    #textInput:focus { border-color: #7c83fd; }
+    #textInput::placeholder { color: #444; }
+
+    #sendBtn {
+      width: 42px; height: 42px;
       border-radius: 50%;
       border: none;
       background: #7c83fd;
       color: #fff;
-      font-size: 26px;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.15s, background 0.2s;
+    }
+    #sendBtn:hover:not(:disabled) { transform: scale(1.08); }
+    #sendBtn:disabled { background: #333; cursor: not-allowed; }
+
+    #mic-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #mic {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #7c83fd;
+      color: #fff;
+      font-size: 22px;
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(124,131,253,0.45);
       transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
@@ -159,17 +207,37 @@
 
 <footer>
   <div id="status">Danışmağa hazır</div>
-  <button id="mic" onclick="toggle()">🎙️</button>
-  <button id="clear" onclick="clearChat()">Söhbəti sil</button>
+  <div id="text-row">
+    <textarea id="textInput" rows="1" placeholder="Mesaj yazın..."></textarea>
+    <button id="sendBtn" onclick="sendText()">➤</button>
+  </div>
+  <div id="mic-row">
+    <button id="mic" onclick="toggle()">🎙️</button>
+    <button id="clear" onclick="clearChat()">Söhbəti sil</button>
+  </div>
 </footer>
 
 <script>
   let recorder = null, chunks = [], recording = false, history = [];
 
-  const micBtn   = document.getElementById('mic');
-  const statusEl = document.getElementById('status');
-  const dotEl    = document.getElementById('dot');
-  const conv     = document.getElementById('conversation');
+  const micBtn    = document.getElementById('mic');
+  const sendBtn   = document.getElementById('sendBtn');
+  const textInput = document.getElementById('textInput');
+  const statusEl  = document.getElementById('status');
+  const dotEl     = document.getElementById('dot');
+  const conv      = document.getElementById('conversation');
+
+  textInput.addEventListener('input', () => {
+    textInput.style.height = 'auto';
+    textInput.style.height = Math.min(textInput.scrollHeight, 120) + 'px';
+  });
+  textInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
+  });
+
+  function setDisabled(on) {
+    micBtn.disabled = sendBtn.disabled = textInput.disabled = on;
+  }
 
   function setState(s, text) {
     statusEl.textContent = text;
@@ -183,11 +251,110 @@
     d.innerHTML = label ? `<div class="who">${label}</div>${text}` : text;
     conv.appendChild(d);
     conv.scrollTop = conv.scrollHeight;
+    return d;
+  }
+
+  function playAudio(b64) {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const audio = new Audio(URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' })));
+    setState('', 'Cavab oxunur...');
+    audio.onended = () => setState('', 'Danışmağa hazır');
+    audio.play();
+  }
+
+  // Reads an SSE stream from a fetch response.
+  // userText: already-known user text (for /api/chat), or null (for /api/process where
+  //           the server sends a "transcribed" event first).
+  async function readStream(resp, userText) {
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    let userBubble = userText ? addMsg('user', userText) : null;
+    let aiBubble   = null;
+    let aiContent  = null;
+    let aiText     = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const ev = JSON.parse(line.slice(6));
+
+          if (ev.type === 'transcribed') {
+            userBubble = addMsg('user', ev.user_text);
+            userText   = ev.user_text;
+
+          } else if (ev.type === 'token') {
+            if (!aiBubble) {
+              aiBubble  = addMsg('ai', '');
+              aiContent = aiBubble.querySelector
+                ? (() => {
+                    const s = document.createElement('span');
+                    aiBubble.appendChild(s);
+                    return s;
+                  })()
+                : aiBubble;
+              // rebuild bubble properly
+              aiBubble.innerHTML = '<div class="who">AI</div>';
+              aiContent = document.createElement('span');
+              aiBubble.appendChild(aiContent);
+              conv.appendChild(aiBubble);
+            }
+            aiText += ev.content;
+            aiContent.textContent = aiText;
+            conv.scrollTop = conv.scrollHeight;
+
+          } else if (ev.type === 'done') {
+            history.push({ role: 'user',      content: userText });
+            history.push({ role: 'assistant', content: aiText  });
+            playAudio(ev.audio);
+
+          } else if (ev.type === 'error') {
+            if (aiBubble) aiBubble.remove();
+            addMsg('err', '⚠️ ' + ev.message);
+            setState('', 'Danışmağa hazır');
+          }
+        }
+      }
+    } catch (e) {
+      addMsg('err', '⚠️ Xəta: ' + e.message);
+      setState('', 'Danışmağa hazır');
+    }
+  }
+
+  async function sendText() {
+    const text = textInput.value.trim();
+    if (!text) return;
+    textInput.value = '';
+    textInput.style.height = 'auto';
+    setDisabled(true);
+    setState('processing', 'Cavab gəlir...');
+
+    const form = new FormData();
+    form.append('text',    text);
+    form.append('history', JSON.stringify(history));
+
+    try {
+      const resp = await fetch('/api/chat', { method: 'POST', body: form });
+      await readStream(resp, text);
+    } catch (e) {
+      addMsg('err', '⚠️ Xəta: ' + e.message);
+      setState('', 'Danışmağa hazır');
+    } finally {
+      setDisabled(false);
+    }
   }
 
   async function toggle() {
     if (recording) { recorder.stop(); return; }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       chunks = [];
@@ -198,7 +365,7 @@
         recording = false;
         micBtn.classList.remove('recording');
         micBtn.textContent = '🎙️';
-        await send(new Blob(chunks, { type: 'audio/webm' }));
+        await sendAudio(new Blob(chunks, { type: 'audio/webm' }));
       };
       recorder.start();
       recording = true;
@@ -210,40 +377,22 @@
     }
   }
 
-  async function send(blob) {
-    micBtn.disabled = true;
-    setState('processing', 'Emal edilir...');
+  async function sendAudio(blob) {
+    setDisabled(true);
+    setState('processing', 'Səs tanınır...');
 
     const form = new FormData();
-    form.append('audio', blob, 'rec.webm');
+    form.append('audio',   blob, 'rec.webm');
     form.append('history', JSON.stringify(history));
 
     try {
-      const res  = await fetch('/api/process', { method: 'POST', body: form });
-      const data = await res.json();
-
-      if (data.error) {
-        addMsg('err', '⚠️ ' + data.error);
-        setState('', 'Danışmağa hazır');
-        return;
-      }
-
-      addMsg('user', data.user_text);
-      addMsg('ai',   data.ai_text);
-      history.push({ role: 'user',      content: data.user_text });
-      history.push({ role: 'assistant', content: data.ai_text  });
-
-      setState('', 'Cavab oxunur...');
-      const bytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
-      const audio = new Audio(URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' })));
-      audio.onended = () => setState('', 'Danışmağa hazır');
-      audio.play();
-
+      const resp = await fetch('/api/process', { method: 'POST', body: form });
+      await readStream(resp, null);
     } catch (e) {
       addMsg('err', '⚠️ Xəta: ' + e.message);
       setState('', 'Danışmağa hazır');
     } finally {
-      micBtn.disabled = false;
+      setDisabled(false);
       micBtn.textContent = '🎙️';
     }
   }

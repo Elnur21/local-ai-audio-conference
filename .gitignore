@@ -5,3 +5,5 @@ chroma_db/
 kb/uploads/
 kb/metadata.json
 *.pyc
+cert.key
+cert.pem
